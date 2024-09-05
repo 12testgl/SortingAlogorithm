@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort Visualizer with Generators Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .array-box {
+            width: 50px;    
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .array-box.swapped {
+            background-color: #ffd700;
+            /* Highlight swapped elements */
+        }
+
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .buttons button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sort Visualizer with Generators Demo</h1>
+    <div class="buttons">
+        <button id="startBtn">Start Sorting</button>
+        <button id="stepBtn" disabled>Step</button>
+        <button id="resetBtn" disabled>Reset</button>
+        <div id="stepCount">Total Steps: 0</div>
+        <div id="estimatedSteps">Estimated Steps Before Sorting: 0</div>
+    </div>
+    <div class="array-container" id="arrayContainer"></div>
+
+    <script>
+        let arr = [15, 1, 9, 50, 3, 9, 54, 4, 8];
+        let gen;
+        let i, j;
+        let stepCounter = 0; // To count the total number of steps
+        let estimatedSteps = 0; // To count the total number of steps before sorting
+
+        function* bubbleSort(array) {
+            for (i = 0; i < array.length - 1; ++i) {
+                let swapped = false;
+                for (j = 0; j < array.length - i - 1; ++j) {
+                    if (array[j] > array[j + 1]) {
+                        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                        swapped = true;
+                        stepCounter++;
+                        yield { array: array.slice(), swappedIndices: [j, j + 1] };
+                    }
+                }
+                if (!swapped) break;
+            }
+            return array;
+        }
+
+        function countSortSteps(array) {
+            let tempArray = array.slice();
+            let totalSteps = 0;
+            for (let i = 0; i < tempArray.length - 1; ++i) {
+                let swapped = false;
+                for (let j = 0; j < tempArray.length - i - 1; ++j) {
+                    if (tempArray[j] > tempArray[j + 1]) {
+                        [tempArray[j], tempArray[j + 1]] = [tempArray[j + 1], tempArray[j]];
+                        swapped = true;
+                        totalSteps++;
+                    }
+                }
+                if (!swapped) break;
+            }
+            return totalSteps;
+        }
+
+        function renderArray(array, swappedIndices = []) {
+            const arrayContainer = document.getElementById('arrayContainer');
+            arrayContainer.innerHTML = '';
+
+            array.forEach((value, index) => {
+                const box = document.createElement('div');
+                box.className = 'array-box';
+                box.textContent = value;
+
+                if (swappedIndices.includes(index)) {
+                    box.classList.add('swapped');
+                }
+                arrayContainer.appendChild(box);
+            });
+        }
+
+        function updateStepCount() {
+            document.getElementById('stepCount').textContent = `Total Steps: ${stepCounter}`;
+        }
+
+        function updateEstimatedSteps(count) {
+            document.getElementById('estimatedSteps').textContent = `Estimated Steps Before Sorting: ${count}`;
+        }
+
+        function startSorting() {
+            gen = bubbleSort(arr);
+            stepCounter = 0;
+            updateStepCount();
+
+            const estimatedTotalSteps = countSortSteps(arr);
+            updateEstimatedSteps(estimatedTotalSteps);
+
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = false;
+        }
+
+        function stepSorting() {
+            const result = gen.next();
+            if (!result.done) {
+                renderArray(result.value.array, result.value.swappedIndices);
+                updateStepCount();
+                document.getElementById('stepBtn').disabled = false;
+                document.getElementById('resetBtn').disabled = false;
+            } else {
+                renderArray(result.value);
+                document.getElementById('stepBtn').disabled = true;
+                document.getElementById('resetBtn').disabled = true;
+                document.getElementById('estimatedSteps').textContent = `Estimated Steps Before Sorting: ${estimatedSteps}`;
+                alert(`Sorting completed in ${stepCounter} steps!`);
+            }
+        }
+
+        function resetSorting() {
+            gen = bubbleSort(arr);
+            stepCounter = 0;
+            estimatedSteps = countSortSteps(arr);
+            updateStepCount();
+            updateEstimatedSteps(estimatedSteps);
+            renderArray(arr);
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = true;
+        }
+
+        // Event listeners
+        const startBtn = document.getElementById('startBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        startBtn.addEventListener('click', startSorting);
+        stepBtn.addEventListener('click', stepSorting);
+        resetBtn.addEventListener('click', resetSorting);
+
+        // Initialize the array visualization
+        renderArray(arr);
+    </script>
+</body>
+
+</html>

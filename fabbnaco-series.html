@@ -1,0 +1,99 @@
+<html>
+    <style>
+        body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+.fib-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+.fib-box {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 5px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  font-weight: bold;
+}
+.buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.buttons button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  width: fit-content;
+}
+    </style>
+    <body>
+    <h1>Fibonacci With Generators Demo</h1>
+    <div class="buttons">
+        <button id="startBtn">Start Visualization</button>
+        <button id="stepBtn" disabled>Step</button>
+        <button id="resetBtn" disabled>Reset</button>
+    </div>
+    <div class="fib-container" id="fibContainer"></div>
+    </body>
+    <script>
+        let gen;
+            let result;
+
+            function* fibonacci(n) {
+                let a = 0, b = 1;
+                for (let i = 0; i < n; ++i) {
+                    let temp = a;
+                    a = b;
+                    b = temp + b;
+                    yield a;
+                }
+            }
+
+            function startVisualization() {
+                const fibContainer = document.getElementById('fibContainer');
+                fibContainer.innerHTML = '';
+                gen = fibonacci(20);
+                result = gen.next();
+
+                document.getElementById('stepBtn').disabled = false;
+                document.getElementById('resetBtn').disabled = false;
+            }
+
+            function stepVisualization() {
+                if (result && !result.done) {
+                    const fibContainer = document.getElementById('fibContainer');
+                    const box = document.createElement('div');
+                    box.className = 'fib-box';
+                    box.textContent = result.value;
+                    fibContainer.appendChild(box);
+
+                    result = gen.next();
+                    if (result.done) {
+                        document.getElementById('stepBtn').disabled = true;
+                    }
+                }
+            }
+
+
+            function resetVisualization() {
+                const fibContainer = document.getElementById('fibContainer');
+                fibContainer.innerHTML = '';
+                document.getElementById('stepBtn').disabled = true;
+                document.getElementById('resetBtn').disabled = true;
+            }
+
+            document.getElementById('startBtn').addEventListener('click', startVisualization);
+            document.getElementById('stepBtn').addEventListener('click', stepVisualization);
+            document.getElementById('resetBtn').addEventListener('click', resetVisualization);
+        
+    </script>
+</html>

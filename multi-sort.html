@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Sort Visualizer</title>
+    <style>
+        .array-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .array-box {
+            width: 30px;
+            height: 30px;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: lightblue;
+            border: 1px solid #000;
+        }
+
+        .swapped {
+            background-color: lightcoral;
+        }
+
+        .buttons {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Multi-Sort Visualizer</h1>
+    <div class="buttons">
+        <button id="startBtn">Start Sorting</button>
+        <button id="stepBtn" disabled>Step</button>
+        <button id="resetBtn" disabled>Reset</button>
+        <div id="stepCount">Total Steps: 0</div>
+        <div id="estimatedSteps">Estimated Steps Before Sorting: 0</div>
+        <select id="algorithmSelect"></select>
+    </div>
+    <div class="array-container" id="arrayContainer"></div>
+
+    <script>
+        let arr = [15, 1, 64, 208, 3, 4, 9, 50, 3, 9, 54, 4, 8];
+        let gen;
+        let stepCounter = 0;
+        let estimatedSteps = 0;
+
+        function* bubbleSort(array) {
+            let n = array.length;
+            for (let i = 0; i < n - 1; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    if (array[j] > array[j + 1]) {
+                        [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                        stepCounter++;
+                        yield { array: array.slice(), swappedIndices: [j, j + 1] };
+                    }
+                }
+            }
+        }
+
+        function* insertionSort(array) {
+            for (let i = 1; i < array.length; i++) {
+                let key = array[i];
+                let j = i - 1;
+                while (j >= 0 && array[j] > key) {
+                    array[j + 1] = array[j];
+                    j--;
+                    stepCounter++;
+                    yield { array: array.slice(), swappedIndices: [j + 1, j] };
+                }
+                array[j + 1] = key;
+                stepCounter++;
+                yield { array: array.slice(), swappedIndices: [j + 1, i] };
+            }
+        }
+
+        function* mergeSort(array) {
+            if (array.length <= 1) return array;
+            const mid = Math.floor(array.length / 2);
+            const left = array.slice(0, mid);
+            const right = array.slice(mid);
+
+            yield* mergeSort(left);
+            yield* mergeSort(right);
+
+            let i = 0, j = 0, k = 0;
+            while (i < left.length && j < right.length) {
+                if (left[i] <= right[j]) {
+                    array[k++] = left[i++];
+                } else {
+                    array[k++] = right[j++];
+                }
+                stepCounter++;
+                yield { array: array.slice(), swappedIndices: [k - 1] };
+            }
+            while (i < left.length) {
+                array[k++] = left[i++];
+                stepCounter++;
+                yield { array: array.slice(), swappedIndices: [k - 1] };
+            }
+            while (j < right.length) {
+                array[k++] = right[j++];
+                stepCounter++;
+                yield { array: array.slice(), swappedIndices: [k - 1] };
+            }
+        }
+     
+        function* quickSort(array) {
+                if (array.length <= 1) {
+                    return array;
+                }
+
+                const pivot = array[0];
+                const left = [];
+                const right = [];
+
+                for (let i = 1; i < array.length; i++) {
+                    if (array[i] <= pivot) {
+                        left.push(array[i]);
+                    } else {
+                        right.push(array[i]);
+                    }
+                }
+
+                return [...quickSort(left), pivot, ...quickSort(right)];
+            }
+
+        function* heapSort(array) {
+                const n = array.length;
+
+                // Build max heap
+                for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+                    heapify(array, n, i);
+                }
+
+                // Extract elements one by one
+                for (let i = n - 1; i > 0; i--) {
+                    // Move the current root to the end
+                    [array[0], array[i]] = [array[i], array[0]];
+
+                    // Call max heapify on the reduced heap
+                    heapify(array, i, 0);
+                }
+
+                return array;
+            }
+
+            function heapify(array, n, i) {
+                let largest = i;
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+
+                if (left < n && array[left] > array[largest]) {
+                    largest = left;
+                }
+
+                if (right < n && array[right] > array[largest]) {
+                    largest = right;
+                }
+
+                if (largest !== i) {
+                    [array[i], array[largest]] = [array[largest], array[i]];
+                    heapify(array, n, largest);
+                }
+            }
+
+        function renderArray(array, swappedIndices = []) {
+            const arrayContainer = document.getElementById('arrayContainer');
+            arrayContainer.innerHTML = '';
+
+            array.forEach((value, index) => {
+                const box = document.createElement('div');
+                box.className = 'array-box';
+                box.textContent = value;
+
+                if (swappedIndices.includes(index)) {
+                    box.classList.add('swapped');
+                }
+                arrayContainer.appendChild(box);
+            });
+        }
+
+        function updateStepCount() {
+            document.getElementById('stepCount').textContent = `Total Steps: ${stepCounter}`;
+        }
+
+        function updateEstimatedSteps(count) {
+            document.getElementById('estimatedSteps').textContent = `Estimated Steps Before Sorting: ${count}`;
+        }
+
+        function countSortSteps(array) {
+            const length = array.length;
+            switch (document.getElementById('algorithmSelect').value) {
+                case 'bubble': return length * length;
+                case 'selection': return length * (length - 1) / 2;
+                case 'insertion': return length * length;
+                case 'merge': return length * Math.log2(length);
+                case 'quick': return length * Math.log2(length);
+                case 'heap': return length * Math.log2(length);
+                default: return 0;
+            }
+        }
+
+        function startSorting() {
+            const selectedAlgorithm = document.getElementById('algorithmSelect').value;
+            switch (selectedAlgorithm) {
+                case 'bubble': gen = bubbleSort(arr); break;
+                case 'selection': gen = selectionSort(arr); break;
+                case 'insertion': gen = insertionSort(arr); break;
+                case 'merge': gen = mergeSort(arr); break;
+                case 'quick': gen = quickSort(arr); break;
+                case 'heap': gen = heapSort(arr); break;
+            }
+
+            stepCounter = 0;
+            updateStepCount();
+
+            const estimatedTotalSteps = countSortSteps(arr);
+            updateEstimatedSteps(estimatedTotalSteps);
+
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = false;
+        }
+
+        function stepSorting() {
+            if (gen) {
+                const result = gen.next();
+                if (result.done) {
+                    renderArray(arr);
+                    document.getElementById('stepBtn').disabled = true;
+                    document.getElementById('resetBtn').disabled = true;
+                    alert(`Sorting completed in ${stepCounter} steps!`);
+                } else {
+                    renderArray(result.value.array, result.value.swappedIndices);
+                    updateStepCount();
+                }
+            }
+        }
+
+    function resetSorting() {
+            arr = [15, 1, 64, 208, 3, 4, 9, 50, 3, 9, 54, 4, 8];
+            stepCounter = 0;
+            estimatedSteps = countSortSteps(arr);
+            updateStepCount();
+            updateEstimatedSteps(estimatedSteps);
+            renderArray(arr);
+            document.getElementById('stepBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = true;
+        }
+
+        // Initialize the array visualization
+        renderArray(arr);
+
+        // Event listeners
+        const startBtn = document.getElementById('startBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        startBtn.addEventListener('click', startSorting);
+        stepBtn.addEventListener('click', stepSorting);
+        resetBtn.addEventListener('click', resetSorting);
+
+        // Populate the algorithm select dropdown
+        const algorithms = ['bubble', 'selection', 'insertion', 'merge', 'quick', 'heap'];
+        algorithms.forEach(algorithm => {
+            const option = document.createElement('option');
+            option.value = algorithm;
+            option.text = algorithm.charAt(0).toUpperCase() + algorithm.slice(1);
+            document.getElementById('algorithmSelect').appendChild(option);
+        });
+    </script>
+    </body>
+    </html>
